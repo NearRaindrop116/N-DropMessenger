@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>N-Drop Messenger</title>
+<img src="N-Drop Icon.svg" id="siteIcon" alt="N-Drop Icon" draggable=false>
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', system-ui, sans-serif; }
+body { background:#36393f; color:#dcddde; height:100vh; overflow:hidden; }
+
+/* Scrollbar styling */
+.messages-container::-webkit-scrollbar {
+	width: 8px;
+}
+.messages-container::-webkit-scrollbar-track {
+	background: #2f3136;
+	border-radius: 4px;
+}
+.messages-container::-webkit-scrollbar-thumb {
+	background: #5865f2;
+	border-radius: 4px;
+}
+
+/* Minimum spacing between messages */
+.message {
+	margin-bottom: 8px;
+}
+
+#siteIcon {
+	position: fixed;     /* stays in place even if you scroll */
+	top: 12px;           /* distance from top */
+	right: 12px;         /* distance from right */
+	width: 50px;         /* adjust size as needed */
+	height: 50px;        /* maintain aspect ratio */
+	z-index: 1000;       /* makes sure it’s above other elements */
+}
+
+.app-container { display:flex; height:100vh; }
+.sidebar { width:240px; background:#2f3136; display:flex; flex-direction:column; border-right:1px solid #202225; padding:16px; }
+.server-info { padding-bottom:12px; border-bottom:1px solid #202225; }
+.server-name { font-weight:600; font-size:16px; color:#fff; margin-bottom:4px; }
+.connection-status { font-size:12px; color:#b9bbbe; display:flex; align-items:center; gap:6px; }
+.status-dot { width:8px; height:8px; border-radius:50%; background:#f04747; }
+.status-dot.connected { background:#43b581; }
+.status-dot.connecting { background:#faa61a; animation:pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.5} }
+
+.connection-section { flex:1; display:flex; flex-direction:column; gap:12px; margin-top:12px; }
+.section-title { font-size:12px; text-transform:uppercase; color:#8e9297; font-weight:600; letter-spacing:0.02em; margin-bottom:4px; }
+.input-group { display:flex; flex-direction:column; gap:6px; margin-bottom:8px; }
+.input-label { font-size:12px; color:#b9bbbe; font-weight:500; }
+input, textarea { background:#40444b; border:1px solid #202225; border-radius:4px; padding:8px; color:#dcddde; font-size:14px; font-family:inherit; transition:border-color 0.15s ease; }
+input:focus, textarea:focus { outline:none; border-color:#7289da; }
+textarea { resize:none; height:80px; font-family:'Courier New', monospace; font-size:11px; }
+
+.btn { padding:10px 16px; border:none; border-radius:4px; font-weight:500; font-size:14px; cursor:pointer; transition:all 0.15s ease; font-family:inherit; }
+.btn-primary { background:#5865f2; color:white; }
+.btn-primary:hover:not(:disabled) { background:#4752c4; }
+.btn-secondary { background:#4f545c; color:#dcddde; }
+.btn-secondary:hover:not(:disabled) { background:#5d6269; }
+.btn-success { background:#3ba55d; color:white; }
+.btn-success:hover:not(:disabled) { background:#2d7d32; }
+.btn:disabled { opacity:0.5; cursor:not-allowed; }
+.btn-small { padding:4px 8px; font-size:12px; }
+
+.room-code-display { background:#2f3136; border:1px solid #202225; border-radius:4px; padding:12px; margin:8px 0; text-align:center; }
+.room-code { font-family:'Courier New', monospace; font-size:18px; font-weight:bold; color:#7289da; letter-spacing:2px; margin-bottom:4px; }
+.room-code-label { font-size:11px; color:#8e9297; text-transform:uppercase; }
+
+.main-content { flex:1; display:flex; flex-direction:column; background:#36393f; }
+.chat-header { background:#36393f; padding:16px 20px; border-bottom:1px solid #202225; }
+.chat-title { font-size:16px; font-weight:600; color:#fff; margin-bottom:4px; }
+.chat-subtitle { font-size:12px; color:#8e9297; }
+
+.messages-container { flex:1; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:8px; }
+.message { display:flex; align-items:flex-start; gap:12px; padding:4px 0; min-height:32px; animation:messageAppear 0.2s ease-out; }
+@keyframes messageAppear { from{opacity:0; transform:translateY(8px);}to{opacity:1; transform:translateY(0);} }
+.message:hover {
+	background: rgba(4,4,5,0.07);
+	border-radius: 4px;
+	transform: translateY(-3px); /* small lift effect */
+}
+
+.message-avatar { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:600; color:white; font-size:16px; flex-shrink:0; }
+.avatar-system { background:linear-gradient(135deg,#faa61a,#f57c00); width:32px; height:32px; font-size:14px; }
+
+.message-content { flex:1; min-width:0; }
+.message-header { display:flex; align-items:baseline; gap:8px; margin-bottom:2px; }
+.message-author { font-weight:600; color:#fff; font-size:16px; }
+.message-timestamp { font-size:12px; color:#a3a6aa; }
+.message-text { color:#dcddde; font-size:16px; line-height:1.375; word-wrap:break-word; }
+.message.system { justify-content:center; padding:8px 0; }
+.message.system .message-content { background:rgba(114,137,218,0.1); border:1px solid rgba(114,137,218,0.2); border-radius:4px; padding:8px 12px; text-align:center; max-width:600px; }
+.message.system .message-text { font-size:14px; color:#7289da; font-weight:500; }
+
+.message-input-container { padding:24px 20px; background:#36393f; }
+.message-input-wrapper { background:#40444b; border-radius:8px; padding:12px 16px; display:flex; align-items:center; gap:12px; border:1px solid transparent; transition:border-color 0.15s ease; }
+.message-input-wrapper:focus-within { border-color:#7289da; }
+.message-input { flex:1; background:transparent; border:none; color:#dcddde; font-size:16px; font-family:inherit; outline:none; }
+.message-input::placeholder { color:#72767d; }
+.send-button { background:#5865f2; color:white; border:none; border-radius:4px; padding:8px 12px; cursor:pointer; font-weight:500; transition:background-color 0.15s ease; }
+.send-button:hover:not(:disabled) { background:#4752c4; }
+.send-button:disabled { background:#4f545c; cursor:not-allowed; }
+
+.hidden { display:none; }
+</style>
+</head>
+<body>
+<div class="app-container">
+    <div class="sidebar">
+        <div class="server-info">
+            <div class="server-name">N-Drop Messenger</div>
+            <div class="connection-status">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Offline</span>
+            </div>
+        </div>
+        <div class="connection-section">
+            <div class="section-title">Create Room</div>
+            <button id="createBtn" class="btn btn-primary">Create Connection</button>
+            <div id="createSection" class="hidden">
+                <div class="input-group">
+                    <label class="input-label">Share this code</label>
+                    <textarea id="offerCode" readonly></textarea>
+                </div>
+                <div class="input-group">
+                    <label class="input-label">Paste friend's code</label>
+                    <textarea id="answerCode"></textarea>
+                    <button id="finishBtn" class="btn btn-success btn-small">Connect</button>
+                </div>
+            </div>
+
+            <div class="section-title" style="margin-top:12px;">Join Room</div>
+            <div id="joinSection" class>
+                <div class="input-group">
+                    <label class="input-label">Paste friend's code</label>
+                    <textarea id="joinCode"></textarea>
+                </div>
+                <div id="responseSection" class="hidden">
+                    <div class="input-group">
+                        <label class="input-label">Send this back</label>
+                        <textarea id="responseCode" readonly></textarea>
+                        <button id="copyResponseBtn" class="btn btn-success btn-small">Copy</button>
+                    </div>
+                </div>
+            </div>
+			            <button id="connectBtn" class="btn btn-secondary btn-small">Connect & Generate Response</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="chat-header">
+            <div class="chat-title">Welcome to N-Drop Messenger</div>
+            <div class="chat-subtitle">Create or join a room to start messaging</div>
+        </div>
+        <div class="messages-container" id="messages">
+            <div class="message system">
+                <div class="message-avatar avatar-system">!</div>
+                <div class="message-content"><div class="message-text">Welcome! Create or join a room to start chatting.</div></div>
+            </div>
+        </div>
+        <div class="message-input-container">
+            <div class="message-input-wrapper">
+                <input type="text" id="messageInput" class="message-input" placeholder="Message is disabled until connected..." disabled>
+                <button id="sendBtn" class="send-button" disabled>Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let pc=null,dataChannel=null,myAvatar={},peerAvatar={};
+const emoticons=['-_-','^-^','o_o','>_<','T_T','UwU'];
+const gradients=[
+'linear-gradient(135deg, #5865f2, #7289da)',
+'linear-gradient(135deg, #57f287, #43b581)',
+'linear-gradient(135deg, #faa61a, #f57c00)',
+'linear-gradient(135deg, #eb459e, #ff75a0)',
+'linear-gradient(135deg, #ffcd1e, #ff6b1e)'
+];
+
+const elements={
+	createBtn:document.getElementById('createBtn'),
+	joinSection:document.getElementById('joinSection'),
+	createSection:document.getElementById('createSection'),
+	finishBtn:document.getElementById('finishBtn'),
+	connectBtn:document.getElementById('connectBtn'),
+	responseSection:document.getElementById('responseSection'),
+	offerCode:document.getElementById('offerCode'),
+	answerCode:document.getElementById('answerCode'),
+	joinCode:document.getElementById('joinCode'),
+	responseCode:document.getElementById('responseCode'),
+	copyResponseBtn:document.getElementById('copyResponseBtn'),
+	messageInput:document.getElementById('messageInput'),
+	sendBtn:document.getElementById('sendBtn'),
+	messages:document.getElementById('messages'),
+	statusText:document.getElementById('statusText'),
+	statusDot:document.getElementById('statusDot')
+};
+
+function setStatus(msg,state='offline'){elements.statusText.textContent=msg;elements.statusDot.className='status-dot '+state;addSystemMessage(msg);}
+function addSystemMessage(text){const div=document.createElement('div');div.className='message system';div.innerHTML=`<div class="message-avatar avatar-system">!</div><div class="message-content"><div class="message-text">${text}</div></div>`;elements.messages.appendChild(div);elements.messages.scrollTop=elements.messages.scrollHeight;}
+function addMessage(text,isSent=false,avatar=myAvatar){const div=document.createElement('div');div.className='message '+(isSent?'sent':'received');div.innerHTML=`<div class="message-avatar" style="background:${avatar.gradient}">${avatar.emoticon}</div><div class="message-content"><div class="message-text">${text}</div></div>`;elements.messages.appendChild(div);elements.messages.scrollTop=elements.messages.scrollHeight;}
+function pickRandomAvatar(exclude=[]){let emo,grad;do{emo=emoticons[Math.floor(Math.random()*emoticons.length)];}while(exclude.some(e=>e.emoticon===emo));do{grad=gradients[Math.floor(Math.random()*gradients.length)];}while(exclude.some(e=>e.gradient===grad));return {emoticon:emo,gradient:grad};}
+
+// WebRTC logic
+elements.createBtn.onclick = async () => {
+	try {
+		elements.joinSection.classList.add('hidden');
+		elements.connectBtn.classList.add('hidden')
+		elements.messages.innerHTML = '';
+		setStatus('Creating connection...', 'connecting');
+		myAvatar = pickRandomAvatar();
+
+		pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+		dataChannel = pc.createDataChannel('messages');
+		setupDataChannel();
+
+		pc.oniceconnectionstatechange = () => {
+			if (pc.iceConnectionState === 'connected') onConnected();
+			else if (pc.iceConnectionState === 'checking') setStatus('Connecting...', 'connecting');
+			else if (pc.iceConnectionState === 'disconnected') setStatus('Disconnected', 'offline');
+		};
+
+		// Create offer
+		const offer = await pc.createOffer();
+		await pc.setLocalDescription(offer);
+
+		// Wait for ICE gathering
+		await new Promise(r => {
+			if (pc.iceGatheringState === 'complete') r();
+			else pc.addEventListener('icegatheringstatechange', () => {
+				if (pc.iceGatheringState === 'complete') r();
+			});
+		});
+
+		// Store the offer on Render
+		const response = await fetch('https://n-drop-backend.onrender.com/api/store', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ data: pc.localDescription })
+		});
+		const result = await response.json();
+
+		elements.offerCode.value = result.id; // Short code to share
+		elements.createSection.classList.remove('hidden');
+		setStatus('Share this code with your friend', 'offline');
+
+	} catch (e) {
+		console.error(e);
+		setStatus('Error creating connection', 'offline');
+	}
+};
+
+
+elements.connectBtn.onclick = async () => {
+	try {
+		setStatus('Connecting...', 'connecting');
+		myAvatar = pickRandomAvatar();
+
+		const codeID = elements.joinCode.value.trim();
+		if (!codeID) return addSystemMessage('Enter a code first!');
+
+		// Fetch offer from server
+		const res = await fetch(`https://n-drop-backend.onrender.com/api/code/${codeID}`);
+		if (!res.ok) return addSystemMessage('Code not found!');
+		const offerData = await res.json();
+
+		pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+		pc.ondatachannel = e => { dataChannel = e.channel; setupDataChannel(); };
+		pc.oniceconnectionstatechange = () => { if (pc.iceConnectionState === 'connected') onConnected(); };
+
+		await pc.setRemoteDescription(offerData.data);
+
+		// Create answer
+		const answer = await pc.createAnswer();
+		await pc.setLocalDescription(answer);
+
+		// Wait for ICE gathering
+		await new Promise(r => {
+			if (pc.iceGatheringState === 'complete') r();
+			else pc.addEventListener('icegatheringstatechange', () => {
+				if (pc.iceGatheringState === 'complete') r();
+			});
+		});
+
+		// Store answer on server
+		const answerRes = await fetch('https://n-drop-backend.onrender.com/api/store', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ data: pc.localDescription })
+		});
+		const answerResult = await answerRes.json();
+
+		elements.responseCode.value = answerResult.id; // Share this back
+		elements.responseSection.classList.remove('hidden');
+		setStatus('Send this code back to complete connection', 'offline');
+
+	} catch (e) {
+		console.error(e);
+		setStatus('Error joining connection', 'offline');
+	}
+};
+
+elements.finishBtn.onclick = async () => {
+	try {
+		const answerID = elements.answerCode.value.trim();
+		if (!answerID) return addSystemMessage('Enter the answer code!');
+
+		const res = await fetch(`https://n-drop-backend.onrender.com/api/code/${answerID}`);
+		if (!res.ok) return addSystemMessage('Answer code not found!');
+		const answerData = await res.json();
+
+		await pc.setRemoteDescription(answerData.data);
+		setStatus('Connected', 'connected');
+		
+		elements.joinSection.classList.remove('hidden');
+		elements.connectBtn.classList.remove('hidden')
+	} catch (e) {
+		console.error(e);
+		setStatus('Error finishing connection', 'offline');
+	}
+};
+
+elements.copyResponseBtn.onclick=()=>{elements.responseCode.select();document.execCommand('copy');};
+
+function setupDataChannel(){if(!dataChannel)return;
+	dataChannel.onopen=()=>{
+		setStatus('Connected','connected');elements.messageInput.disabled=false;elements.sendBtn.disabled=false;
+		dataChannel.send(JSON.stringify({type:'avatar',data:myAvatar}));
+	};
+	dataChannel.onmessage=e=>{
+		const msg=JSON.parse(e.data);
+		if(msg.type==='avatar'){peerAvatar=msg.data;}
+		else addMessage(msg.text,false,peerAvatar||{emoticon:'?',gradient:'#666'});
+	};
+}
+
+function onConnected() {
+	elements.messages.innerHTML = '';
+
+	setStatus('Connected', 'connected');
+	addSystemMessage('You can now chat!');
+	
+	elements.messageInput.disabled = false;
+	elements.messageInput.placeholder = 'Input message...';
+	elements.sendBtn.disabled = false;
+}
+elements.sendBtn.onclick=()=>{sendMessage();};
+elements.messageInput.onkeypress=e=>{if(e.key==='Enter')sendMessage();};
+function sendMessage(){const text=elements.messageInput.value.trim();if(text&&dataChannel&&dataChannel.readyState==='open'){dataChannel.send(JSON.stringify({text}));addMessage(text,true,myAvatar);elements.messageInput.value='';}
+}
+</script>
+</body>
+</html>
