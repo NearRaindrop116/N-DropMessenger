@@ -4,10 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>N-Drop Messenger</title>
-<img src="N-Drop Icon.svg" id="siteIcon" alt="N-Drop Icon" draggable=false>
 <link rel="icon" href="favicon.ico" type="image/x-icon">
 <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
-
 <style>
 * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', system-ui, sans-serif; }
 body { background:#36393f; color:#dcddde; height:100vh; overflow:hidden; }
@@ -30,13 +28,11 @@ body { background:#36393f; color:#dcddde; height:100vh; overflow:hidden; }
 	margin-bottom: 8px;
 }
 
-#siteIcon {
-	position: fixed;     /* stays in place even if you scroll */
-	top: 12px;           /* distance from top */
-	right: 12px;         /* distance from right */
-	width: 50px;         /* adjust size as needed */
-	height: 50px;        /* maintain aspect ratio */
-	z-index: 1000;       /* makes sure it’s above other elements */
+.top-right-icon {
+	position: absolute;
+	top: 12px;
+	right: 12px;
+	cursor: pointer;
 }
 
 .app-container { display:flex; height:100vh; }
@@ -110,6 +106,11 @@ textarea { resize:none; height:80px; font-family:'Courier New', monospace; font-
 </style>
 </head>
 <body>
+<div class="top-right-icon">
+	<a href="https://nearraindrop116.github.io" target="_blank">
+		<img src="N-Drop Icon.svg" alt="N-Drop Icon" style="width:50px;height:50px;" draggable=false>
+	</a>
+</div>
 <div class="app-container">
     <div class="sidebar">
         <div class="server-info">
@@ -357,3 +358,4 @@ function sendMessage(){const text=elements.messageInput.value.trim();if(text&&da
 </script>
 </body>
 </html>
+
